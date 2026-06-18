@@ -12,10 +12,10 @@
         .container { height: 100vh; display: flex; flex-direction: column; padding: 10px; box-sizing: border-box; background: #fff; max-width: 500px; margin: auto; }
         h1 { font-size: 16px; margin: 0 0 10px 0; color: var(--primary); border-bottom: 2px solid var(--primary); text-align: center; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
-        th, td { border: 1px solid #eee; padding: 10px 6px !important; text-align: center; font-size: 13px; }
+        th, td { border: 1px solid #eee; padding: 4px 6px !important; text-align: center; font-size: 13px; }
         th { background: #f8f8f8; }
-        .qty { width: 50px !important; padding: 6px !important; height: 30px !important; text-align: center; border: 1px solid #ccc; font-size: 14px; }
-        .btn-qty { padding: 4px 12px !important; height: 30px; font-size: 16px; cursor: pointer; }
+        .qty { width: 50px !important; padding: 4px !important; height: 24px !important; text-align: center; border: 1px solid #ccc; font-size: 14px; }
+        .btn-qty { padding: 2px 8px !important; height: 24px; font-size: 14px; cursor: pointer; }
         .input-row { display: flex; gap: 5px; margin-bottom: 5px; }
         input, select, button { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; box-sizing: border-box; }
         .summary-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 5px; }
@@ -111,7 +111,7 @@
     }
     
     function updateTable(totals = {}) { 
-        document.getElementById('itemTableBody').innerHTML = items.map(i => `<tr><td style="text-align:left; font-weight:bold;">${i}</td><td style="padding: 4px !important;">${totals[i] || 0}</td><td><button class="btn-qty" onclick="changeQty(this, -1)">−</button><input type="number" class="qty" value="0"><button class="btn-qty" onclick="changeQty(this, 1)">+</button></td></tr>`).join(''); 
+        document.getElementById('itemTableBody').innerHTML = items.map(i => `<tr><td style="text-align:left; font-weight:bold;">${i}</td><td style="padding: 4px !important;">${totals[i] || 0}</td><td style="padding: 2px !important;"><button class="btn-qty" onclick="changeQty(this, -1)">−</button><input type="number" class="qty" value="" onchange="changeQty(this.parentElement.querySelector('button'), 0)"><button class="btn-qty" onclick="changeQty(this, 1)">+</button></td></tr>`).join(''); 
     }
     
     function editRecord(id) { 
@@ -121,7 +121,7 @@
             document.getElementById('customer').value = r.customer; 
             document.getElementById('amount').value = r.amount; 
             document.getElementById('paymentType').value = r.payment; 
-            r.rows.forEach((row, i) => document.querySelectorAll('.qty')[i].value = row.qty); 
+            r.rows.forEach((row, i) => document.querySelectorAll('.qty')[i].value = row.qty || ""); 
             editingId = id; 
             document.getElementById('saveBtn').textContent = "UPDATE RECORD"; 
             document.getElementById('cancelBtn').style.display = "block"; 
@@ -148,7 +148,7 @@
             updateTable(totals); 
             document.getElementById('cashTotal').textContent = cash; 
             document.getElementById('onlineTotal').textContent = online; 
-            document.getElementById('history').innerHTML = filtered.map(r => `<div class="card"><div><strong>${r.customer}</strong> - ₱${r.amount} (${r.payment})<br><small>${r.date}</small></div><div><button onclick="editRecord(${r.id})" style="background:#ffc107; border:none; padding:5px 10px; cursor:pointer;">Edit</button> <button onclick="deleteRecord(${r.id})" style="background:#dc3545; color:#fff; border:none; padding:5px 10px; cursor:pointer;">Delete</button></div></div>`).join(''); 
+            document.getElementById('history').innerHTML = filtered.map(r => `<div class="card"><div><strong>${r.customer}</strong> - ₱${r.amount} (${r.payment})<br><small>${r.date}</small></div><div><button onclick="editRecord(${r.id})">✎</button> <button onclick="deleteRecord(${r.id})" style="background:#dc3545;color:#fff;border:none;padding:5px 10px;cursor:pointer;border-radius:4px;">🗑</button></div></div>`).join(''); 
         }; 
     }
 </script>
