@@ -52,7 +52,19 @@
         <label for="dateFilter" style="display: block; font-weight: bold; font-size: 11px; margin-bottom: 2px;">Filter Records by Date:</label>
         <input type="date" id="dateFilter" onchange="updateUI()" style="width: 100%; padding: 5px;">
     </div>
-    <h3  PWA Install Button Logic
+    <h3 style="margin: 5px 0;">History</h3>
+    <div id="history"></div>
+</div>
+
+<script>
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+    let db, editingId = null;
+    const PASSCODE = "0729", items = ["PULLET", "SMALL", "MEDIUM", "LARGE", "XL", "JUMBO", "S-JUMBO", "OTHERS", "SALTED"];
+    const req = indexedDB.open("SystemDB", 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore("data", {keyPath: "id", autoIncrement: true});
+    req.onsuccess = e => { db = e.target.result; updateUI(); };
+
+    // PWA Install Button Logic
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
@@ -76,17 +88,69 @@
     function saveRecord() {
         const c = document.getElementById('customer').value.trim(), a = document.getElementById('amount').value.trim();
         if (!c || !a) return alert("Paki-fill up ang Name at Amount!");
-        const q
+        const qtyInputs = document.querySelectorAll('.qty');
+        const data = { customer: c, rows: items.map((n, i) => ({ name: n, qty: parseInt(qtyInputs[i].value) || 0 })), amount: a, payment: document.getElementById('paymentType').value, date: new Date().toISOString().split('T')[0] };
         const tx = db.transaction("data", "readwrite");
         editingId ? (data.id = editingId, tx.objectStore("data").put(data)) : tx.objectStore("data").add(data);
         tx.oncomplete = () => { updateUI(); resetForm(); };
     }
-    function resetForm() { document.getElementById('customer').value = ""; document.getElementById('amount').value = ""; document.querySelectorAll('.qty').forEach(i => i.value = ""); editingId = null; document.getElementById('saveBtn').textContent = "SAVE RECORD"; document.getElementById('cancelBtn').style.display = "none"; }
-    function changeQty(b, v) { let i = b.parentElement.querySelector('input'); let n = (parseInt(i.value) || 0) + v; i.value = n > 0 ? n : ""; }
-    function updateTable(totals = {}) { document.getElementById('itemTableBody').innerHTML = items.map(i => `<tr><td style="text-align:left; font-weight:bold;">${i}</td><td style="padding: 4px !important;">${totals[i] || 0}</td><td><button class="btn-qty" onclick="changeQty(this, -1)">−</button><input type="number" class="qty" value="0"><button class="btn-qty" onclick="changeQty(this, 1)">+</button></td></tr>`).join(''); }
-    function editRecord(id) { if (prompt("Ilagay ang passcode para mag-edit:") !== PASSCODE) return; db.transaction("data", "readonly").objectStore("data").get(id).onsuccess = e => { const r = e.target.result; document.getElementById('customer').value = r.customer; document.getElementById('amount').value = r.amount; document.getElementById('paymentType').value = r.payment; r.rows.forEach((row, i) => document.querySelectorAll('.qty')[i].value = row.qty); editingId = id; document.getElementById('saveBtn').textContent = "UPDATE RECORD"; document.getElementById('cancelBtn').style.display = "block"; }; }
-    function deleteRecord(id) { if (prompt("Ilagay ang passcode para magbura:") !== PASSCODE) return; db.transaction("data", "readwrite").objectStore("data").delete(id).onsuccess = () => { updateUI(); }; }
-    function updateUI() { db.transaction("data", "readonly").objectStore("data").getAll().onsuccess = e => { const recs = e.target.result, filter = document.getElementById('dateFilter').value, filtered = filter ? recs.filter(r => r.date === filter) : recs, totals = {}, cash = 0, online = 0; filtered.forEach(r => { r.rows.forEach(row => totals[row.name] = (totals[row.name] || 0) + row.qty); if (r.payment === "Cash") cash += parseInt(r.amount); else if (r.payment === "Online") online += parseInt(r.amount); }); updateTable(totals); document.getElementById('cashTotal').textContent = cash; document.getElementById('onlineTotal').textContent = online; document.getElementById('history').innerHTML = filtered.map(r => `<div class="card"><div><strong>${r.customer}</strong> - ₱${r.amount} (${r.payment})<br><small>${r.date}</small></div><div><button onclick="editRecord(${r.id})" style="background:#ffc107; border:none; padding:5px 10px; cursor:pointer;">Edit</button> <button onclick="deleteRecord(${r.id})" style="background:#dc3545; color:#fff; border:none; padding:5px 10px; cursor:pointer;">Delete</button></div></div>`).join(''); }; }
+    
+    function resetForm() { 
+        document.getElementById('customer').value = ""; 
+        document.getElementById('amount').value = ""; 
+        document.querySelectorAll('.qty').forEach(i => i.value = ""); 
+        editingId = null; 
+        document.getElementById('saveBtn').textContent = "SAVE RECORD"; 
+        document.getElementById('cancelBtn').style.display = "none"; 
+    }
+    
+    function changeQty(b, v) { 
+        let i = b.parentElement.querySelector('input'); 
+        let n = (parseInt(i.value) || 0) + v; 
+        i.value = n > 0 ? n : ""; 
+    }
+    
+    function updateTable(totals = {}) { 
+        document.getElementById('itemTableBody').innerHTML = items.map(i => `<tr><td style="text-align:left; font-weight:bold;">${i}</td><td style="padding: 4px !important;">${totals[i] || 0}</td><td><button class="btn-qty" onclick="changeQty(this, -1)">−</button><input type="number" class="qty" value="0"><button class="btn-qty" onclick="changeQty(this, 1)">+</button></td></tr>`).join(''); 
+    }
+    
+    function editRecord(id) { 
+        if (prompt("Ilagay ang passcode para mag-edit:") !== PASSCODE) return; 
+        db.transaction("data", "readonly").objectStore("data").get(id).onsuccess = e => { 
+            const r = e.target.result; 
+            document.getElementById('customer').value = r.customer; 
+            document.getElementById('amount').value = r.amount; 
+            document.getElementById('paymentType').value = r.payment; 
+            r.rows.forEach((row, i) => document.querySelectorAll('.qty')[i].value = row.qty); 
+            editingId = id; 
+            document.getElementById('saveBtn').textContent = "UPDATE RECORD"; 
+            document.getElementById('cancelBtn').style.display = "block"; 
+        }; 
+    }
+    
+    function deleteRecord(id) { 
+        if (prompt("Ilagay ang passcode para magbura:") !== PASSCODE) return; 
+        db.transaction("data", "readwrite").objectStore("data").delete(id).onsuccess = () => { updateUI(); }; 
+    }
+    
+    function updateUI() { 
+        db.transaction("data", "readonly").objectStore("data").getAll().onsuccess = e => { 
+            const recs = e.target.result, 
+                  filter = document.getElementById('dateFilter').value, 
+                  filtered = filter ? recs.filter(r => r.date === filter) : recs, 
+                  totals = {}; 
+            let cash = 0, online = 0; 
+            filtered.forEach(r => { 
+                r.rows.forEach(row => totals[row.name] = (totals[row.name] || 0) + row.qty); 
+                if (r.payment === "Cash") cash += parseInt(r.amount); 
+                else if (r.payment === "Online") online += parseInt(r.amount); 
+            }); 
+            updateTable(totals); 
+            document.getElementById('cashTotal').textContent = cash; 
+            document.getElementById('onlineTotal').textContent = online; 
+            document.getElementById('history').innerHTML = filtered.map(r => `<div class="card"><div><strong>${r.customer}</strong> - ₱${r.amount} (${r.payment})<br><small>${r.date}</small></div><div><button onclick="editRecord(${r.id})" style="background:#ffc107; border:none; padding:5px 10px; cursor:pointer;">Edit</button> <button onclick="deleteRecord(${r.id})" style="background:#dc3545; color:#fff; border:none; padding:5px 10px; cursor:pointer;">Delete</button></div></div>`).join(''); 
+        }; 
+    }
 </script>
 </body>
 </html>
