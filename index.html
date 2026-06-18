@@ -34,7 +34,7 @@
     <h1>JIMBETH EGG SUPPLY</h1>
     <input type="text" id="customer" placeholder="Customer Name" style="width: 100%; margin-bottom: 5px;">
     <table>
-        <thead><tr><th>Item</th><th>Total</th><th>Sold</th></tr></thead>
+        <thead><tr><th>Item</th><th>Sold</th><th>Total</th></tr></thead>
         <tbody id="itemTableBody"></tbody>
     </table>
     <div class="input-row">
@@ -89,7 +89,7 @@
         const c = document.getElementById('customer').value.trim(), a = document.getElementById('amount').value.trim();
         if (!c || !a) return alert("Paki-fill up ang Name at Amount!");
         const qtyInputs = document.querySelectorAll('.qty');
-        const data = { customer: c, rows: items.map((n, i) => ({ name: n, qty: parseInt(qtyInputs[i].value) || 0 })), amount: a, payment: document.getElementById('paymentType').value, date: new Da[...]
+        const data = { customer: c, rows: items.map((n, i) => ({ name: n, qty: parseInt(qtyInputs[i].value) || 0 })), amount: a, payment: document.getElementById('paymentType').value, date: new Date().toISOString().split('T')[0] };
         const tx = db.transaction("data", "readwrite");
         editingId ? (data.id = editingId, tx.objectStore("data").put(data)) : tx.objectStore("data").add(data);
         tx.oncomplete = () => { updateUI(); resetForm(); };
@@ -111,7 +111,7 @@
     }
     
     function updateTable(totals = {}) { 
-        document.getElementById('itemTableBody').innerHTML = items.map(i => `<tr><td style="text-align:left; font-weight:bold;">${i}</td><td style="padding: 4px !important;">${totals[i] || 0}</td[...]
+        document.getElementById('itemTableBody').innerHTML = items.map(i => `<tr><td style="text-align:left; font-weight:bold;">${i}</td><td style="padding: 4px !important;"><button class="btn-qty" onclick="changeQty(this, -1)">-</button><input class="qty" type="number" value=""><button class="btn-qty" onclick="changeQty(this, 1)">+</button></td><td>${totals[i] || 0}</td></tr>`).join('');
     }
     
     function editRecord(id) { 
@@ -148,7 +148,7 @@
             updateTable(totals); 
             document.getElementById('cashTotal').textContent = cash; 
             document.getElementById('onlineTotal').textContent = online; 
-            document.getElementById('history').innerHTML = filtered.map(r => `<div class="card"><div><strong>${r.customer}</strong> - ₱${r.amount} (${r.payment})<br><small>${r.date}</small></di[...]
+            document.getElementById('history').innerHTML = filtered.map(r => `<div class="card"><div><strong>${r.customer}</strong> - ₱${r.amount} (${r.payment})<br><small>${r.date}</small></div><div style="display:flex; gap:5px;"><button onclick="editRecord(${r.id})" style="background:#007bff; color:#fff; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;">✎</button><button onclick="deleteRecord(${r.id})" style="background:#dc3545; color:#fff; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;">✕</button></div></div>`).join('');
         }; 
     }
 </script>
