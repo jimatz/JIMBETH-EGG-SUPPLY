@@ -16,19 +16,19 @@
         th, td { border: 1px solid #eee; padding: 6px !important; text-align: center; font-size: 13px; height: 32px; }
         th { background: #f8f8f8; }
         
-        /* Clean Input/Button Group */
-        .controls-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+        /* Layout */
+        .controls-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px; }
         .input-row { display: flex; gap: 5px; }
         input, select, button { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; box-sizing: border-box; }
         
-        .summary-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 5px; }
-        .s-box { padding: 6px; text-align: center; border-radius: 4px; font-weight: bold; color: white; font-size: 12px; }
+        .footer-status { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 5px; }
+        .s-box { padding: 6px; text-align: center; border-radius: 4px; font-weight: bold; color: white; font-size: 11px; }
         
         #history { flex-grow: 1; overflow-y: auto; border: 1px solid #eee; padding: 5px; }
         .card { padding: 8px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .btn-action { background: var(--primary); color: #fff; border: none; cursor: pointer; font-weight: bold; }
         .btn-cancel { background: #dc3545; color: #fff; border: none; cursor: pointer; font-weight: bold; }
-        #installBtn { background: #6f42c1; display: none; width: 100%; padding: 10px; margin-bottom: 5px; }
+        .btn-del { background: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -51,20 +51,16 @@
         <button id="cancelBtn" class="btn-cancel" onclick="resetForm()" style="display:none;">CANCEL EDIT</button>
     </div>
 
-    <button id="installBtn" class="btn-action">📱 INSTALL APP</button>
-    
-    <div class="summary-row">
-        <div class="s-box" style="background: #28a745;">CASH: <span id="cashTotal">0</span></div>
-        <div class="s-box" style="background: #007bff;">ONLINE: <span id="onlineTotal">0</span></div>
+    <div class="footer-status">
+        <input type="date" id="dateFilter" onchange="updateUI()" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+        <div class="s-box" style="background: #28a745;">CASH:<br><span id="cashTotal">0</span></div>
+        <div class="s-box" style="background: #007bff;">ONLINE:<br><span id="onlineTotal">0</span></div>
     </div>
-    
-    <input type="date" id="dateFilter" onchange="updateUI()" style="width: 100%; padding: 5px; margin-bottom: 5px;">
     
     <div id="history"></div>
 </div>
 
 <script>
-    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
     let db, editingId = null;
     const PASSCODE = "0729", items = ["PULLET", "SMALL", "MEDIUM", "LARGE", "XL", "JUMBO", "S-JUMBO", "OTHERS", "SALTED"];
     
@@ -74,7 +70,6 @@
 
     function formatAmount(amt) { return parseInt(amt || 0).toLocaleString('en-US'); }
 
-    // Logic to clear 0s
     function updateTable(totals = {}) { 
         document.getElementById('itemTableBody').innerHTML = items.map(i => `<tr>
             <td style="text-align:left; font-weight:bold;">${i}</td>
@@ -96,13 +91,7 @@
     function saveRecord() {
         const c = document.getElementById('customer').value.trim(), a = document.getElementById('amount').value.trim();
         if (!c || !a) return alert("Paki-fill up ang Name at Amount!");
-        const data = { 
-            customer: c, 
-            rows: items.map((n, i) => ({ name: n, qty: parseInt(document.querySelectorAll('.qty')[i].value) || 0 })), 
-            amount: a, 
-            payment: document.getElementById('paymentType').value, 
-            date: new Date().toISOString().split('T')[0] 
-        };
+        const data = { customer: c, rows: items.map((n, i) => ({ name: n, qty: parseInt(document.querySelectorAll('.qty')[i].value) || 0 })), amount: a, payment: document.getElementById('paymentType').value, date: new Date().toISOString().split('T')[0] };
         const tx = db.transaction("data", "readwrite");
         editingId ? (data.id = editingId, tx.objectStore("data").put(data)) : tx.objectStore("data").add(data);
         tx.oncomplete = () => { updateUI(); resetForm(); };
@@ -112,6 +101,18 @@
         document.getElementById('customer').value = ""; document.getElementById('amount').value = ""; 
         document.querySelectorAll('.qty').forEach(i => i.value = ""); editingId = null; 
         document.getElementById('saveBtn').textContent = "SAVE"; document.getElementById('cancelBtn').style.display = "none"; 
+    }
+
+    function editRecord(id) { 
+        if (prompt("Passcode:") !== PASSCODE) return;
+        db.transaction("data", "readonly").objectStore("data").get(id).onsuccess = e => { 
+            const r = e.target.result; document.getElementById('customer').value = r.customer; document.getElementById('amount').value = r.amount; document.getElementById('paymentType').value = r.payment; r.rows.forEach((row, i) => document.querySelectorAll('.qty')[i].value = row.qty || ""); editingId = id; document.getElementById('saveBtn').textContent = "UPDATE"; document.getElementById('cancelBtn').style.display = "block";
+        }; 
+    }
+
+    function deleteRecord(id) { 
+        if (prompt("Passcode para magbura:") !== PASSCODE) return;
+        db.transaction("data", "readwrite").objectStore("data").delete(id).onsuccess = () => updateUI();
     }
 
     function updateUI() { 
@@ -125,11 +126,9 @@
             updateTable(totals); 
             document.getElementById('cashTotal').textContent = formatAmount(cash); 
             document.getElementById('onlineTotal').textContent = formatAmount(online); 
-            document.getElementById('history').innerHTML = filtered.reverse().map(r => `<div class="card"><div><strong>${r.customer}</strong> - ₱${formatAmount(r.amount)} (${r.payment})</div><button onclick="editRecord(${r.id})" style="padding:5px; background:none; border:none; color:blue;">✎</button></div>`).join(''); 
+            document.getElementById('history').innerHTML = filtered.reverse().map(r => `<div class="card"><div><strong>${r.customer}</strong> - ₱${formatAmount(r.amount)} (${r.payment})</div><div><button onclick="editRecord(${r.id})" style="background:none; border:none; color:blue;">✎</button><button onclick="deleteRecord(${r.id})" class="btn-del">×</button></div></div>`).join(''); 
         }; 
     }
-
-    // PWA Logic... (Keep previous logic)
 </script>
 </body>
 </html>
