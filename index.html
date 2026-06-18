@@ -18,15 +18,20 @@
         
         /* Layout */
         .controls-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px; }
-        .input-row { display: flex; gap: 5px; }
+        .input-row { display: flex; gap: 5px; align-items: stretch; }
         input, select, button { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; box-sizing: border-box; }
+        
+        /* Adjusted widths: Amount smaller, Save button wider */
+        #amount { flex: 0.7; }
+        #paymentType { flex: 1.1; }
+        #saveBtn { flex: 2.5; background: #28a745; color: white; border: none; font-weight: bold; font-size: 14px; cursor: pointer; }
+        #saveBtn:active { background: #218838; }
         
         .footer-status { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 5px; }
         .s-box { padding: 6px; text-align: center; border-radius: 4px; font-weight: bold; color: white; font-size: 11px; }
         
         #history { flex-grow: 1; overflow-y: auto; border: 1px solid #eee; padding: 5px; }
         .card { padding: 8px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        .btn-action { background: var(--primary); color: #fff; border: none; cursor: pointer; font-weight: bold; }
         .btn-cancel { background: #dc3545; color: #fff; border: none; cursor: pointer; font-weight: bold; }
         .btn-del { background: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
     </style>
@@ -44,9 +49,9 @@
 
     <div class="controls-group">
         <div class="input-row">
-            <input type="number" id="amount" placeholder="₱ Amount" style="flex: 2;">
-            <select id="paymentType" style="flex: 1;"><option>Cash</option><option>Online</option><option>Consignment</option></select>
-            <button id="saveBtn" class="btn-action" onclick="saveRecord()" style="flex: 1.5;">SAVE</button>
+            <input type="number" id="amount" placeholder="₱ Amount">
+            <select id="paymentType"><option>Cash</option><option>Online</option><option>Consignment</option></select>
+            <button id="saveBtn" onclick="saveRecord()">SAVE</button>
         </div>
         <button id="cancelBtn" class="btn-cancel" onclick="resetForm()" style="display:none;">CANCEL EDIT</button>
     </div>
