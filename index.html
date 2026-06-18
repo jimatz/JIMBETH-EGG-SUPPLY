@@ -34,7 +34,7 @@
     <h1>JIMBETH EGG SUPPLY</h1>
     <input type="text" id="customer" placeholder="Customer Name" style="width: 100%; margin-bottom: 5px;">
     <table>
-        <thead><tr><th>Item</th><th>Sold</th><th>Total</th></tr></thead>
+        <thead><tr><th>Item</th><th>Sold</th></tr></thead>
         <tbody id="itemTableBody"></tbody>
     </table>
     <div class="input-row">
@@ -116,7 +116,7 @@
     }
     
     function updateTable(totals = {}) { 
-        document.getElementById('itemTableBody').innerHTML = items.map(i => `<tr><td style="text-align:left; font-weight:bold;">${i}</td><td style="padding: 4px !important;"><button class="btn-qty" onclick="changeQty(this, -1)">−</button><input type="number" class="qty" value="${totals[i] || 0}" readonly><button class="btn-qty" onclick="changeQty(this, 1)">+</button></td><td>${totals[i] || 0}</td></tr>`).join('');
+        document.getElementById('itemTableBody').innerHTML = items.map(i => `<tr><td style="text-align:left; font-weight:bold;">${i}</td><td style="padding: 4px !important;"><button class="btn-qty" onclick="changeQty(this, -1)">-</button><input type="number" class="qty" value=""><button class="btn-qty" onclick="changeQty(this, 1)">+</button></td></tr>`).join(""); 
     }
     
     function editRecord(id) { 
@@ -154,7 +154,7 @@
             updateTable(totals); 
             document.getElementById('cashTotal').textContent = formatAmount(cash); 
             document.getElementById('onlineTotal').textContent = formatAmount(online); 
-            document.getElementById('history').innerHTML = filtered.map(r => `<div class="card"><div><strong>${r.customer}</strong> - ₱${formatAmount(r.amount)} (${r.payment})<br><small>${r.date}</small></div><div style="display:flex; gap:5px;"><button onclick="editRecord(${r.id})" style="background:#007bff; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;">✏️</button><button onclick="deleteRecord(${r.id})" style="background:#dc3545; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;">🗑️</button></div></div>`).join('');
+            document.getElementById('history').innerHTML = filtered.map(r => `<div class="card"><div><strong>${r.customer}</strong> - ₱${formatAmount(r.amount)} (${r.payment})<br><small>${r.date}</small></div><div><button onclick="editRecord(${r.id})" style="background:#007bff; color:#fff; border:none; padding:5px 10px; cursor:pointer; margin-right:5px;">Edit</button><button onclick="deleteRecord(${r.id})" style="background:#dc3545; color:#fff; border:none; padding:5px 10px; cursor:pointer;">Delete</button></div></div>`).join(""); 
         }; 
     }
 </script>
