@@ -6,21 +6,35 @@
     <title>JIMBETH EGG SUPPLY</title>
     <style>
         :root { --primary: #333; --bg: #f4f4f4; }
-        body { margin: 0; padding: 10px; font-family: sans-serif; font-size: 12px; background: var(--bg); }
-        .container { max-width: 500px; margin: auto; background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h1 { text-align: center; font-size: 16px; margin: 0 0 10px 0; color: var(--primary); border-bottom: 2px solid var(--primary); }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-        th, td { border: 1px solid #eee; padding: 5px; text-align: center; }
-        th { background: #f8f8f8; font-size: 11px; }
-        .input-row { display: flex; gap: 5px; margin-bottom: 10px; }
-        input, select, button { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
-        .summary-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 10px; }
-        .s-box { padding: 6px; text-align: center; border-radius: 4px; font-weight: bold; color: white; }
-        #history { max-height: 250px; overflow-y: auto; border: 1px solid #eee; padding: 5px; }
+        body, html { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; background: var(--bg); }
+        .container { 
+            height: 100vh; display: flex; flex-direction: column; padding: 10px; 
+            box-sizing: border-box; background: #fff; max-width: 500px; margin: auto; 
+        }
+        
+        h1 { font-size: 16px; margin: 0 0 10px 0; color: var(--primary); border-bottom: 2px solid var(--primary); text-align: center; }
+        
+        /* Expanded Item Table Section */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
+        th, td { border: 1px solid #eee; padding: 6px !important; text-align: center; font-size: 12px; }
+        th { background: #f8f8f8; }
+        .qty { width: 40px !important; padding: 4px !important; height: 24px !important; text-align: center; border: 1px solid #ccc; font-size: 13px; }
+        .btn-qty { padding: 2px 8px !important; height: 24px; font-size: 14px; cursor: pointer; }
+        
+        /* Inputs & Summary */
+        .input-row { display: flex; gap: 5px; margin-bottom: 5px; }
+        input, select, button { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; box-sizing: border-box; }
+        .summary-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 5px; }
+        .s-box { padding: 6px; text-align: center; border-radius: 4px; font-weight: bold; color: white; font-size: 12px; }
+        
+        /* Filter Section */
+        .filter-section { background: #eee; padding: 6px; border-radius: 4px; margin-bottom: 5px; }
+        
+        /* Scrollable History Section */
+        #history { flex-grow: 1; overflow-y: auto; border: 1px solid #eee; padding: 5px; }
         .card { padding: 8px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        .btn-action { background: var(--primary); color: #fff; border: none; cursor: pointer; width: 100%; font-weight: bold; padding: 10px; }
-        .btn-cancel { background: #dc3545; color: #fff; border: none; cursor: pointer; width: 100%; font-weight: bold; padding: 10px; margin-top: 5px; }
-        .btn-qty { background: #eee; border: 1px solid #ccc; padding: 2px 8px; cursor: pointer; font-weight: bold; }
+        .btn-action { background: var(--primary); color: #fff; border: none; cursor: pointer; width: 100%; font-weight: bold; padding: 10px; margin-bottom: 5px; }
+        .btn-cancel { background: #dc3545; color: #fff; border: none; cursor: pointer; width: 100%; font-weight: bold; padding: 10px; margin-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -45,22 +59,22 @@
     <button id="saveBtn" class="btn-action" onclick="saveRecord()">SAVE RECORD</button>
     <button id="cancelBtn" class="btn-cancel" onclick="resetForm()" style="display:none;">CANCEL EDIT</button>
 
-    <div class="summary-row" style="margin-top:10px;">
+    <div class="summary-row">
         <div class="s-box" style="background: #28a745;">CASH: <span id="cashTotal">0</span></div>
         <div class="s-box" style="background: #007bff;">ONLINE: <span id="onlineTotal">0</span></div>
     </div>
     
-    <div style="margin-top: 15px; margin-bottom: 5px;">
-        <label><b>Filter by Date:</b></label>
-        <input type="date" id="dateFilter" onchange="updateUI()" style="width: 100%;">
+    <div class="filter-section">
+        <label for="dateFilter" style="display: block; font-weight: bold; font-size: 11px; margin-bottom: 2px;">Filter Records by Date:</label>
+        <input type="date" id="dateFilter" onchange="updateUI()" style="width: 100%; padding: 5px;">
     </div>
-    <h3>History</h3>
+
+    <h3 style="margin: 5px 0;">History</h3>
     <div id="history"></div>
 </div>
 
 <script>
-    let db;
-    let editingId = null;
+    let db, editingId = null;
     const PASSCODE = "0729";
     const items = ["PEEWEE", "PULLET", "SMALL", "MEDIUM", "LARGE", "XL", "JUMBO", "S-JUMBO", "OTHERS", "SALTED"];
     
@@ -83,13 +97,7 @@
         };
 
         const tx = db.transaction("data", "readwrite");
-        if (editingId) {
-            data.id = editingId;
-            tx.objectStore("data").put(data);
-        } else {
-            tx.objectStore("data").add(data);
-        }
-
+        editingId ? (data.id = editingId, tx.objectStore("data").put(data)) : tx.objectStore("data").add(data);
         tx.oncomplete = () => { updateUI(); resetForm(); };
     }
 
@@ -108,10 +116,18 @@
         i.value = n > 0 ? n : ""; 
     }
 
+    function updateTable(totals = {}) {
+        document.getElementById('itemTableBody').innerHTML = items.map(i => `
+            <tr><td style="text-align:left; font-weight:bold;">${i}</td>
+            <td style="padding: 4px !important;">
+            <button class="btn-qty" onclick="changeQty(this, -1)">-</button>
+            <input type="number" class="qty" value="" placeholder="0">
+            <button class="btn-qty" onclick="changeQty(this, 1)">+</button></td>
+            <td><b>${totals[i] > 0 ? totals[i] : ""}</b></td></tr>`).join('');
+    }
+
     function editRecord(id) {
-        const inputPass = prompt("Ilagay ang passcode para mag-edit:");
-        if (inputPass !== PASSCODE) { if (inputPass !== null) alert("Maling passcode!"); return; }
-        
+        if (prompt("Ilagay ang passcode para mag-edit:") !== PASSCODE) return;
         db.transaction("data", "readonly").objectStore("data").get(id).onsuccess = e => {
             const r = e.target.result;
             document.getElementById('customer').value = r.customer;
@@ -121,29 +137,15 @@
             editingId = id;
             document.getElementById('saveBtn').innerText = "UPDATE RECORD";
             document.getElementById('cancelBtn').style.display = "block";
-            window.scrollTo(0, 0);
         };
     }
 
     function deleteRecord(id) {
-        const inputPass = prompt("Ilagay ang passcode para magbura:");
-        if (inputPass !== PASSCODE) { if (inputPass !== null) alert("Maling passcode!"); return; }
-        if (!confirm("BABALA: Sigurado ka bang gusto mong burahin ang record na ito?")) return;
-        
+        if (prompt("Ilagay ang passcode para magbura:") !== PASSCODE) return;
         db.transaction("data", "readwrite").objectStore("data").delete(id).onsuccess = () => {
             updateUI();
             if (editingId === id) resetForm();
         };
-    }
-
-    function updateTable(totals = {}) {
-        const body = document.getElementById('itemTableBody');
-        body.innerHTML = items.map(i => `
-            <tr><td style="text-align:left; font-weight:bold;">${i}</td>
-            <td><button class="btn-qty" onclick="changeQty(this, -1)">-</button>
-            <input type="number" class="qty" value="" placeholder="0" style="width:30px; text-align:center;">
-            <button class="btn-qty" onclick="changeQty(this, 1)">+</button></td>
-            <td><b>${totals[i] > 0 ? totals[i] : ""}</b></td></tr>`).join('');
     }
 
     function updateUI() {
@@ -161,20 +163,14 @@
                 if(r.payment=="Cash") cs+=amt; 
                 if(r.payment=="Online") os+=amt; 
             });
-            
             document.getElementById('cashTotal').innerText = cs.toLocaleString();
             document.getElementById('onlineTotal').innerText = os.toLocaleString();
             
             document.getElementById('history').innerHTML = filtered.reverse().map(r => `
                 <div class="card">
-                    <div style="width: 80%;">
-                        <b>${r.customer}</b> | ₱${parseFloat(r.amount).toLocaleString()} | ${r.payment}<br>
-                        <small style="color: #555;">Items: ${(r.rows || []).filter(i => i.qty > 0).map(i => `${i.name}:${i.qty}`).join(', ') || 'None'}</small>
-                    </div>
-                    <div>
-                        <button onclick="editRecord(${r.id})">✎</button>
-                        <button onclick="deleteRecord(${r.id})" style="color:red;">✕</button>
-                    </div>
+                    <div style="width: 80%;"><b>${r.customer}</b> | ₱${parseFloat(r.amount).toLocaleString()} | ${r.payment}<br>
+                    <small style="color: #555;">${(r.rows || []).filter(i => i.qty > 0).map(i => `${i.name}:${i.qty}`).join(', ') || 'None'}</small></div>
+                    <div><button onclick="editRecord(${r.id})">✎</button><button onclick="deleteRecord(${r.id})" style="color:red;">✕</button></div>
                 </div>`).join('');
         };
     }
