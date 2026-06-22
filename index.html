@@ -16,12 +16,10 @@
         th, td { border: 1px solid #eee; padding: 6px !important; text-align: center; font-size: 13px; height: 32px; }
         th { background: #f8f8f8; }
         
-        /* Layout */
         .controls-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px; }
         .input-row { display: flex; gap: 5px; align-items: stretch; }
         input, select, button { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; box-sizing: border-box; }
         
-        /* Adjusted widths: Amount smaller, Save button wider */
         #amount { flex: 0.7; }
         #paymentType { flex: 1.1; }
         #saveBtn { flex: 2.5; background: #28a745; color: white; border: none; font-weight: bold; font-size: 14px; cursor: pointer; }
@@ -131,7 +129,20 @@
             updateTable(totals); 
             document.getElementById('cashTotal').textContent = formatAmount(cash); 
             document.getElementById('onlineTotal').textContent = formatAmount(online); 
-            document.getElementById('history').innerHTML = filtered.reverse().map(r => `<div class="card"><div><strong>${r.customer}</strong> - ₱${formatAmount(r.amount)} (${r.payment})</div><div><button onclick="editRecord(${r.id})" style="background:none; border:none; color:blue;">✎</button><button onclick="deleteRecord(${r.id})" class="btn-del">×</button></div></div>`).join(''); 
+            
+            document.getElementById('history').innerHTML = filtered.reverse().map(r => {
+                const itemsTaken = r.rows.filter(row => row.qty > 0).map(row => `${row.name} ${row.qty}`).join(' • ');
+                return `<div class="card">
+                    <div style="width: 80%;">
+                        <strong>${r.customer}</strong> - ₱${formatAmount(r.amount)} (${r.payment})<br>
+                        <small style="color: #666; font-size: 11px;">${itemsTaken || 'Walang items'}</small>
+                    </div>
+                    <div>
+                        <button onclick="editRecord(${r.id})" style="background:none; border:none; color:blue; font-size:18px;">✎</button>
+                        <button onclick="deleteRecord(${r.id})" class="btn-del">×</button>
+                    </div>
+                </div>`;
+            }).join(''); 
         }; 
     }
 </script>
