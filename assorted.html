@@ -10,11 +10,10 @@
         .side-by-side { display: flex; gap: 5px; }
         .side-by-side table { width: 50%; }
         th { background: #000; color: #fff; font-size: 9px; padding: 5px 2px; text-align: center; }
-        td { padding: 4px 1px; border: 1px solid #ddd; text-align: center; height: 26px; }
+        td { padding: 4px 1px; border: 1px solid #ddd; text-align: center; height: 26px; overflow: hidden; white-space: nowrap; }
         td:first-child { font-weight: bold; background: #eee; }
-        .total-row td { background: #ddd; font-weight: bold; text-align: center !important; }
-        /* Style para sa editable cells */
-        [contenteditable] { cursor: text; }
+        .total-row td { background: #ddd; font-weight: bold; }
+        [contenteditable] { cursor: text; outline: none; }
         [contenteditable]:focus { background: #fff3cd; outline: 1px solid #ffc107; }
     </style>
 </head>
@@ -22,7 +21,15 @@
 
     <table id="table1">
         <thead>
-            <tr><th>SIZE</th><th>ASS1</th><th>ASS2</th><th>ASS3</th><th>ASS4</th><th>ASS5</th><th>ASS6</th></tr>
+            <tr>
+                <th>SIZE</th>
+                <th contenteditable="true" id="h_ass1">ASS1</th>
+                <th contenteditable="true" id="h_ass2">ASS2</th>
+                <th contenteditable="true" id="h_ass3">ASS3</th>
+                <th contenteditable="true" id="h_ass4">ASS4</th>
+                <th contenteditable="true" id="h_ass5">ASS5</th>
+                <th contenteditable="true" id="h_ass6">ASS6</th>
+            </tr>
         </thead>
         <tbody id="body1"></tbody>
         <tfoot>
@@ -45,9 +52,17 @@
         const rowCount = 8;
         let db;
 
-        const request = indexedDB.open("FarmDB", 1);
+        const request = indexedDB.open("FarmDB", 2);
         request.onupgradeneeded = e => e.target.result.createObjectStore("data", {keyPath: "id"});
         request.onsuccess = e => { db = e.target.result; loadData(); };
+
+        // Prevent Enter key from creating new lines
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.target.blur();
+            }
+        });
 
         function createRows() {
             const body1 = document.getElementById('body1');
@@ -55,25 +70,17 @@
             const body3 = document.getElementById('body3');
 
             for(let i=0; i<rowCount; i++) {
-                // Table 1: ASS Columns are now fully and easily editable
                 let row1 = body1.insertRow();
                 for(let j=0; j<7; j++) {
                     let cell = row1.insertCell();
                     cell.contentEditable = true;
                     cell.id = `body1_r${i}c${j}`;
                     if(j > 0) cell.setAttribute("inputmode", "numeric");
-                    
                     cell.addEventListener('input', (e) => { 
-                        // Sync SIZE to Table 2
                         if(j === 0) document.getElementById(`body2_r${i}c0`).innerText = cell.innerText;
-                        
-                        // Formatting habang nag-e-edit
-                        saveData(cell); 
-                        if(j > 0) calculateMain(); 
+                        saveData(cell); if(j > 0) calculateMain(); 
                     });
                 }
-
-                // Table 2
                 let row2 = body2.insertRow();
                 for(let j=0; j<4; j++) {
                     let cell = row2.insertCell();
@@ -87,7 +94,6 @@
                 }
             }
 
-            // Table 3
             for(let i=0; i<7; i++) {
                 let row3 = body3.insertRow();
                 for(let j=0; j<2; j++) {
@@ -98,11 +104,16 @@
                     cell.addEventListener('input', () => saveData(cell));
                 }
             }
+
+            // Save headers
+            document.querySelectorAll('th[contenteditable]').forEach(th => {
+                th.addEventListener('input', () => saveData(th));
+            });
         }
 
-        function saveData(cell) {
+        function saveData(el) {
             let tx = db.transaction("data", "readwrite");
-            tx.objectStore("data").put({id: cell.id, val: cell.innerText});
+            tx.objectStore("data").put({id: el.id, val: el.innerText});
         }
 
         function loadData() {
@@ -133,9 +144,7 @@
         function calculateDetail(row) {
             let qty = Number(document.getElementById(`body2_r${row}c1`).innerText.replace(/,/g, '')) || 0;
             let prc = Number(document.getElementById(`body2_r${row}c2`).innerText.replace(/,/g, '')) || 0;
-            let total = qty * prc;
-            document.getElementById(`body2_r${row}c3`).innerText = total.toLocaleString();
-            // Note: Hindi na natin autosave dito para hindi ma-interrupt ang typing
+            document.getElementById(`body2_r${row}c3`).innerText = (qty * prc).toLocaleString();
         }
 
         createRows();
