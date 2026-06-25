@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Farm App Pro - Editable</title>
+    <style>
+        body { margin: 0; padding: 5px; font-family: sans-serif; background: #f4f4f9; font-size: 11px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed; background: #fff; }
+        .side-by-side { display: flex; gap: 5px; }
+        .side-by-side table { width: 50%; }
+        th { background: #000; color: #fff; font-size: 9px; padding: 5px 2px; text-align: center; }
+        td { padding: 4px 1px; border: 1px solid #ddd; text-align: center; height: 26px; }
+        td:first-child { font-weight: bold; background: #eee; }
+        .total-row td { background: #ddd; font-weight: bold; text-align: center !important; }
+        /* Style para sa editable cells */
+        [contenteditable] { cursor: text; }
+        [contenteditable]:focus { background: #fff3cd; outline: 1px solid #ffc107; }
+    </style>
+</head>
+<body>
+
+    <table id="table1">
+        <thead>
+            <tr><th>SIZE</th><th>ASS1</th><th>ASS2</th><th>ASS3</th><th>ASS4</th><th>ASS5</th><th>ASS6</th></tr>
+        </thead>
+        <tbody id="body1"></tbody>
+        <tfoot>
+            <tr class="total-row"><td>TOTAL</td><td id="sum1">0</td><td id="sum2">0</td><td id="sum3">0</td><td id="sum4">0</td><td id="sum5">0</td><td id="sum6">0</td></tr>
+        </tfoot>
+    </table>
+
+    <div class="side-by-side">
+        <table id="table2">
+            <thead><tr><th>SIZE</th><th>QTY</th><th>PRICE</th><th>TOTAL</th></tr></thead>
+            <tbody id="body2"></tbody>
+        </table>
+        <table id="table3">
+            <thead><tr><th>EXPENSES</th><th>AMOUNT</th></tr></thead>
+            <tbody id="body3"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const rowCount = 8;
+        let db;
+
+        const request = indexedDB.open("FarmDB", 1);
+        request.onupgradeneeded = e => e.target.result.createObjectStore("data", {keyPath: "id"});
+        request.onsuccess = e => { db = e.target.result; loadData(); };
+
+        function createRows() {
+            const body1 = document.getElementById('body1');
+            const body2 = document.getElementById('body2');
+            const body3 = document.getElementById('body3');
+
+            for(let i=0; i<rowCount; i++) {
+                // Table 1: ASS Columns are now fully and easily editable
+                let row1 = body1.insertRow();
+                for(let j=0; j<7; j++) {
+                    let cell = row1.insertCell();
+                    cell.contentEditable = true;
+                    cell.id = `body1_r${i}c${j}`;
+                    if(j > 0) cell.setAttribute("inputmode", "numeric");
+                    
+                    cell.addEventListener('input', (e) => { 
+                        // Sync SIZE to Table 2
+                        if(j === 0) document.getElementById(`body2_r${i}c0`).innerText = cell.innerText;
+                        
+                        // Formatting habang nag-e-edit
+                        saveData(cell); 
+                        if(j > 0) calculateMain(); 
+                    });
+                }
+
+                // Table 2
+                let row2 = body2.insertRow();
+                for(let j=0; j<4; j++) {
+                    let cell = row2.insertCell();
+                    cell.contentEditable = true;
+                    cell.id = `body2_r${i}c${j}`;
+                    if(j > 0) cell.setAttribute("inputmode", "numeric");
+                    cell.addEventListener('input', () => {
+                        if(j === 0) document.getElementById(`body1_r${i}c0`).innerText = cell.innerText;
+                        saveData(cell); if(j > 0) calculateDetail(i);
+                    });
+                }
+            }
+
+            // Table 3
+            for(let i=0; i<7; i++) {
+                let row3 = body3.insertRow();
+                for(let j=0; j<2; j++) {
+                    let cell = row3.insertCell();
+                    cell.contentEditable = true;
+                    cell.id = `body3_r${i}c${j}`;
+                    if(j === 1) cell.setAttribute("inputmode", "numeric");
+                    cell.addEventListener('input', () => saveData(cell));
+                }
+            }
+        }
+
+        function saveData(cell) {
+            let tx = db.transaction("data", "readwrite");
+            tx.objectStore("data").put({id: cell.id, val: cell.innerText});
+        }
+
+        function loadData() {
+            let tx = db.transaction("data", "readonly");
+            tx.objectStore("data").openCursor().onsuccess = e => {
+                let cursor = e.target.result;
+                if(cursor) {
+                    let el = document.getElementById(cursor.value.id);
+                    if(el) el.innerText = cursor.value.val;
+                    cursor.continue();
+                }
+                calculateMain();
+                for(let i=0; i<rowCount; i++) calculateDetail(i);
+            };
+        }
+
+        function calculateMain() {
+            for (let col = 1; col <= 6; col++) {
+                let sum = 0;
+                for(let i=0; i<rowCount; i++) {
+                    let val = document.getElementById(`body1_r${i}c${col}`).innerText.replace(/,/g, '');
+                    sum += Number(val) || 0;
+                }
+                document.getElementById(`sum${col}`).innerText = sum.toLocaleString();
+            }
+        }
+
+        function calculateDetail(row) {
+            let qty = Number(document.getElementById(`body2_r${row}c1`).innerText.replace(/,/g, '')) || 0;
+            let prc = Number(document.getElementById(`body2_r${row}c2`).innerText.replace(/,/g, '')) || 0;
+            let total = qty * prc;
+            document.getElementById(`body2_r${row}c3`).innerText = total.toLocaleString();
+            // Note: Hindi na natin autosave dito para hindi ma-interrupt ang typing
+        }
+
+        createRows();
+    </script>
+</body>
+</html>
